@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
-@Slf4j
 @Component
 public class JwtUtil {
 
@@ -19,7 +18,6 @@ public class JwtUtil {
     private final long REFRESH_TOKEN_VALIDITY = 1000L * 60 * 60 * 24 * 14;  // 14일
 
     public String generateAccessToken(String userId) {
-        log.info("111111: " + this.SECRET_KEY);
         return Jwts.builder()
                 .setSubject(userId)
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))

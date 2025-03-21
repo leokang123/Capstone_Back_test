@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
@@ -15,6 +16,10 @@ public class RefreshTokenService {
     private final Long expireMs = 1000L * 60 * 60 * 24 * 14;
     public void saveRefreshToken(String userId, String refreshToken) {
         redisTemplate.opsForValue().set("RT:" + userId, refreshToken, expireMs, TimeUnit.MILLISECONDS);
+    }
+
+    public Boolean isValid(String userId, String refreshToken) {
+        return Objects.equals(redisTemplate.opsForValue().get("RT:" + userId), refreshToken);
     }
 
     public String getRefreshToken(String userId) {

@@ -12,12 +12,15 @@ import com.example.mobileapi.Service.RefreshTokenService;
 import com.example.mobileapi.Service.UserService;
 import com.example.mobileapi.Utils.JwtUtil;
 import com.example.mobileapi.Utils.Utils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -36,6 +39,33 @@ public class UserController {
         this.refreshTokenService = refreshTokenService;
         this.jwtUtil = jwtUtil;
 
+    }
+    private String resolveToken(HttpServletRequest request) {
+        String bearer = request.getHeader("Authorization");
+        return (bearer != null && bearer.startsWith("Bearer ")) ? bearer.substring(7) : null;
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(HttpServletRequest request) {
+        String refreshToken = resolveToken(request);
+
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Refresh token이 유효하지 않습니다.");
+        }
+
+        String userId = jwtUtil.getUserIdFromToken(refreshToken);
+
+        // ✅ Redis 등에서 저장된 refreshToken이 실제로 유효한지 비교
+        if (!refreshTokenService.isValid(userId, refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("저장된 Refresh token과 일치하지 않습니다.");
+        }
+
+        // ✅ 새 accessToken 발급
+        String newAccessToken = jwtUtil.generateAccessToken(userId);
+
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
     @PostMapping("/signin")
