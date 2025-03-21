@@ -7,9 +7,9 @@ import com.example.mobileapi.DTO.RegisterResponse;
 import com.example.mobileapi.Entity.Beacon;
 import com.example.mobileapi.Entity.Role;
 import com.example.mobileapi.Entity.User;
-import com.example.mobileapi.Repository.UserRepository;
 import com.example.mobileapi.Service.RefreshTokenService;
 import com.example.mobileapi.Service.UserService;
+import com.example.mobileapi.Utils.CustomUserDetails;
 import com.example.mobileapi.Utils.JwtUtil;
 import com.example.mobileapi.Utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,7 +26,7 @@ import java.util.Optional;
 
 @Slf4j
 @RestController
-@CrossOrigin(origins = "*")  // ✅ 모든 출처 허용 (필요 시 특정 도메인만 허용 가능)
+@CrossOrigin(origins = "*")  // 모든 출처 허용 (필요 시 특정 도메인만 허용 가능)
 @RequestMapping(("/auth"))
 public class UserController {
 
@@ -45,10 +46,17 @@ public class UserController {
         return (bearer != null && bearer.startsWith("Bearer ")) ? bearer.substring(7) : null;
     }
 
+    // 예시 토큰에서 사용자 정보 추출 및 RequestBody 전달받기
+    @PostMapping("/me")
+    public User getMyInfo(@AuthenticationPrincipal CustomUserDetails userDetails,
+                          @RequestBody LoginRequest loginRequest) {
+        log.info("UserDetails: {}", loginRequest);
+        return userDetails.user();
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request) {
         String refreshToken = resolveToken(request);
-
         if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Refresh token이 유효하지 않습니다.");
@@ -56,13 +64,13 @@ public class UserController {
 
         String userId = jwtUtil.getUserIdFromToken(refreshToken);
 
-        // ✅ Redis 등에서 저장된 refreshToken이 실제로 유효한지 비교
+        // Redis 등에서 저장된 refreshToken이 실제로 유효한지 비교
         if (!refreshTokenService.isValid(userId, refreshToken)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("저장된 Refresh token과 일치하지 않습니다.");
         }
 
-        // ✅ 새 accessToken 발급
+        // 새 accessToken 발급
         String newAccessToken = jwtUtil.generateAccessToken(userId);
 
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
