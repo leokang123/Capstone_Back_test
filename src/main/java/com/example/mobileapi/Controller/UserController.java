@@ -5,9 +5,11 @@ import com.example.mobileapi.DTO.LoginResponse;
 import com.example.mobileapi.DTO.RegisterRequest;
 import com.example.mobileapi.DTO.RegisterResponse;
 import com.example.mobileapi.Entity.Beacon;
+import com.example.mobileapi.Entity.Hospital;
 import com.example.mobileapi.Entity.Role;
 import com.example.mobileapi.Entity.User;
 import com.example.mobileapi.Service.RefreshTokenService;
+import com.example.mobileapi.Service.SettingService;
 import com.example.mobileapi.Service.UserService;
 import com.example.mobileapi.Utils.CustomUserDetails;
 import com.example.mobileapi.Utils.JwtUtil;
@@ -19,24 +21,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @RestController
 @CrossOrigin(origins = "*")  // 모든 출처 허용 (필요 시 특정 도메인만 허용 가능)
-@RequestMapping(("/auth"))
+@RequestMapping(("auth"))
 public class UserController {
 
     private final UserService userService;
+    private final SettingService settingService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
 
     @Autowired
-    public UserController(UserService userService, RefreshTokenService refreshTokenService, JwtUtil jwtUtil) {
+    public UserController(UserService userService, SettingService settingService, RefreshTokenService refreshTokenService, JwtUtil jwtUtil) {
         this.userService = userService;
+        this.settingService = settingService;
         this.refreshTokenService = refreshTokenService;
         this.jwtUtil = jwtUtil;
 
@@ -46,15 +48,8 @@ public class UserController {
         return (bearer != null && bearer.startsWith("Bearer ")) ? bearer.substring(7) : null;
     }
 
-    // 예시 토큰에서 사용자 정보 추출 및 RequestBody 전달받기
-    @PostMapping("/me")
-    public User getMyInfo(@AuthenticationPrincipal CustomUserDetails userDetails,
-                          @RequestBody LoginRequest loginRequest) {
-        log.info("UserDetails: {}", loginRequest);
-        return userDetails.user();
-    }
 
-    @PostMapping("/refresh")
+    @PostMapping("refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request) {
         String refreshToken = resolveToken(request);
         if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
@@ -76,7 +71,7 @@ public class UserController {
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
-    @PostMapping("/signin")
+    @PostMapping("signin")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest userinfo) {
         log.info("Login request received");
         Optional<User> _user = userService.login(userinfo.getUsername(), userinfo.getPassword());
@@ -91,19 +86,20 @@ public class UserController {
         return ResponseEntity.badRequest().body(new LoginResponse(null, null, null));
     }
 
-    @PostMapping("/register")
+    @PostMapping("register")
     public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest userinfo) {
         Utils util = new Utils();
         User newUser = new User();
         Long roleId = userinfo.getRoleId();
+        Hospital hs = settingService.getHospitalById(userinfo.getSelectedHospitalId());
 
         newUser.setUserName(userinfo.getUsername());
         newUser.setName(userinfo.getName());
         newUser.setPassword(userinfo.getPassword());
         newUser.setEmail(userinfo.getEmail());
         newUser.setPhoneNumber(userinfo.getPhoneNumber());
-        newUser.setSelectedHospital(userinfo.getSelectedHospital());
-        newUser.setRole(userService.getRole(roleId));
+        newUser.setHospital(hs);
+        newUser.setRole(settingService.getRole(roleId));
         log.info(newUser.getUserName());
         try {
             userService.save(newUser);
@@ -117,38 +113,6 @@ public class UserController {
         return ResponseEntity.ok(new RegisterResponse("User registered successfully"));
     }
 
-    @PostMapping("/save_beacon")
-    public ResponseEntity<RegisterResponse> saveBeacon(@RequestBody Beacon beacon) {
-        try{
-            userService.saveBeacon(beacon);
-        } catch(Exception e) {
-            log.error(e.getMessage());
-            return ResponseEntity.badRequest().body(new RegisterResponse(e.getMessage()));
-        }
-        return ResponseEntity.ok(new RegisterResponse("Beacon saved successfully"));
-    }
-
-    @PostMapping("/save_beacons")
-    public ResponseEntity<RegisterResponse> saveBeacons(@RequestBody List<Beacon> beacons) {
-        try {
-            userService.saveBeacons(beacons); // 리스트로 저장
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            return ResponseEntity.badRequest().body(new RegisterResponse(e.getMessage()));
-        }
-        return ResponseEntity.ok(new RegisterResponse("All beacons saved successfully"));
-    }
-
-    @PostMapping("/save_roles")
-    public ResponseEntity<RegisterResponse> saveRoles(@RequestBody List<Role> roles) {
-        try {
-            userService.saveRoles(roles);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            return ResponseEntity.badRequest().body(new RegisterResponse(e.getMessage()));
-        }
-        return ResponseEntity.ok(new RegisterResponse("All roles saved successfully"));
-    }
 
 }
 

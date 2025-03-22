@@ -23,4 +23,9 @@ public class WasteStorage {
     @JoinColumn(name = "beacon_id", unique = true, nullable = false) // beacon_id가 FK (null 허용 가능)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Beacon beacon;
+
+    @ManyToOne
+    @JoinColumn(name = "hospitals_id", nullable = false) // 외래키(FK) 컬럼 이름 지정
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Hospital hospital;
 }

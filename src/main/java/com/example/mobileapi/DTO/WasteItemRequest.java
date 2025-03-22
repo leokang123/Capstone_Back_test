@@ -7,7 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class WasteItemRequest {
-    private Long userId;
     private String wasteType;
     private String wasteDetails;
     private String location;

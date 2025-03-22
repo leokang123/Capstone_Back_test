@@ -5,8 +5,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RegisterStorageRequest {
-    private String storageName;
-    private Long beaconId;
+public class BeaconRequest {
+    private Long id;
+    private String macAddress;
     private Long hospitalId;
+    private Boolean isUsed;
 }

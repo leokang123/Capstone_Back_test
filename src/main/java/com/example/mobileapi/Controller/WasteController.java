@@ -1,16 +1,15 @@
 package com.example.mobileapi.Controller;
 
 import com.example.mobileapi.DTO.*;
-import com.example.mobileapi.Entity.Beacon;
-import com.example.mobileapi.Entity.WasteDetail;
-import com.example.mobileapi.Entity.WasteItem;
-import com.example.mobileapi.Entity.WasteStorage;
+import com.example.mobileapi.Entity.*;
 import com.example.mobileapi.Service.WasteService;
+import com.example.mobileapi.Utils.CustomUserDetails;
 import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
-@RequestMapping("/waste")
+@RequestMapping("waste")
 public class WasteController {
     WasteService wasteService;
 
@@ -39,14 +38,19 @@ public class WasteController {
     }
 
     @PostMapping("register")
-    public ResponseEntity<RegisterResponse> saveWasteItem(@RequestBody WasteItemRequest wasteItem) {
-        wasteService.registerWasteItem(wasteItem);
+    public ResponseEntity<RegisterResponse> saveWasteItem(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody WasteItemRequest wasteItem
+    ) {
+        User user = userDetails.user();
+        wasteService.registerWasteItem(wasteItem, user);
         return ResponseEntity.ok(new RegisterResponse("Waste item registered successfully"));
     }
 
     @GetMapping("get_wastelist")
-    public ResponseEntity<List<WasteItemResponse>> getWasteList() {
-        List<WasteItemResponse> wasteList = wasteService.findAllWasteItems().stream()
+    public ResponseEntity<List<WasteItemResponse>> getWasteList(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.user();
+        List<WasteItemResponse> wasteList = wasteService.findAllWasteItemsByHospital(user).stream()
                 .map(WasteItemResponse::new) // WasteItemResponse 생성자 호출하여 매핑
                 .sorted(Comparator.comparing(WasteItemResponse::getSelectedDate).reversed()) // 날짜 기준 내림차순 정렬
                 .toList();
@@ -54,9 +58,12 @@ public class WasteController {
     }
 
     @PostMapping("get_filtered_wastelist")
-    public ResponseEntity<List<WasteItemResponse>> getFilteredWasteList(@RequestBody SearchRequest searchMessage) {
-
-        List<WasteItem> wasteList = wasteService.findFilteredWasteItems(searchMessage);
+    public ResponseEntity<List<WasteItemResponse>> getFilteredWasteList(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody SearchRequest searchMessage
+    ) {
+        User user = userDetails.user();
+        List<WasteItem> wasteList = wasteService.findFilteredWasteItems(searchMessage, user);
 
         List<WasteItemResponse> wasteResponseList = wasteList.stream()
                 .map(WasteItemResponse::new) // WasteItemResponse 생성자 호출하여 매핑
@@ -65,53 +72,14 @@ public class WasteController {
         return ResponseEntity.ok(wasteResponseList);
     }
 
-    @GetMapping("get_storage_list")
-    public ResponseEntity<List<WasteStorage>> getStorageList() {
-        List<WasteStorage> wasteStorageList =  wasteService.findAllWasteStorages();
-        return ResponseEntity.ok(wasteStorageList);
-    }
-    @PostMapping("register_storage")
-    public ResponseEntity<RegisterResponse> saveStorage(@RequestBody RegisterStorageRequest registerStorageRequest) {
-        try{
-            WasteStorage wasteStorage = new WasteStorage();
-            Beacon beacon = wasteService.findBeaconById(registerStorageRequest.getBeaconId());
-            wasteStorage.setBeacon(beacon);
-            wasteStorage.setStorageName(registerStorageRequest.getStorageName());
-
-            wasteService.registerWasteStorage(wasteStorage);
-        } catch (Exception e){
-            return ResponseEntity.badRequest().body(new RegisterResponse(e.getMessage()));
-        }
-        return ResponseEntity.ok(new RegisterResponse("Waste storage registered successfully"));
-    }
-
-    @PostMapping("register_storages")
-    public ResponseEntity<RegisterResponse> saveStorages(@RequestBody List<RegisterStorageRequest> storageRequests) {
-        try {
-            List<WasteStorage> wasteStorages = new ArrayList<>();
-
-            for (RegisterStorageRequest request : storageRequests) {
-                Beacon beacon = wasteService.findBeaconById(request.getBeaconId());
-                WasteStorage wasteStorage = new WasteStorage();
-                wasteStorage.setBeacon(beacon);
-                wasteStorage.setStorageName(request.getStorageName());
-
-                wasteStorages.add(wasteStorage);
-            }
-
-            // 리스트로 한 번에 저장
-            wasteService.registerWasteStorages(wasteStorages);
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new RegisterResponse(e.getMessage()));
-        }
-        return ResponseEntity.ok(new RegisterResponse("All waste storages registered successfully"));
-    }
-
     @PostMapping("waste_items_next_step")
-    public ResponseEntity<RegisterResponse> saveWasteItemNextStep(@RequestBody MoveRequests wasteMoveRequests) {
+    public ResponseEntity<RegisterResponse> saveWasteItemNextStep(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody MoveRequests wasteMoveRequests
+    ) {
         try {
-            wasteService.moveWasteItemsToNextStep(wasteMoveRequests);
+            User user = userDetails.user();
+            wasteService.moveWasteItemsToNextStep(wasteMoveRequests, user);
         } catch (Exception e){
             log.error(e.getMessage());
             return ResponseEntity.badRequest().body(new RegisterResponse(e.getMessage()));
@@ -130,7 +98,7 @@ public class WasteController {
         }
     }
 
-    @GetMapping("/check_item_status")
+    @GetMapping("check_item_status")
     public ResponseEntity<Boolean> checkWasteItem(@RequestParam Long itemId) {
         boolean exists = wasteService.checkItemStatus(itemId);
         log.info("Waste item exists : " + exists);
@@ -143,7 +111,7 @@ public class WasteController {
         return ResponseEntity.ok(true);
     }
 
-    @DeleteMapping("/delete_item")
+    @DeleteMapping("delete_item")
     public ResponseEntity<Boolean> deleteWasteItem(@RequestParam Long itemId) {
         boolean exists = wasteService.checkItemStatus(itemId);
         if (exists) {

@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll() // 로그인/회원가입은 인증 없이
+                        .requestMatchers("/auth/**", "/setting/**").permitAll() // 로그인/회원가입은 인증 없이
                         .anyRequest().authenticated() // 나머지는 토큰 필요
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

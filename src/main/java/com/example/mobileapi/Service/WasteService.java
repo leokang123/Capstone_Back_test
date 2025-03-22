@@ -36,17 +36,22 @@ public class WasteService {
         this.wasteDetailRepository = wasteDetailRepository;
     }
 
-    // wasteItem 다 찾는 서비스
+    // wasteItem 다 찾는 서비스 유저 정보 x
     public List<WasteItem> findAllWasteItems() {
         return wasteRepository.findAll();
     }
 
-    //  wasteItem을 wasteType으로 찾는 서비스
+    public List<WasteItem> findAllWasteItemsByHospital(User user) {
+        Hospital hospital = user.getHospital();
+        return wasteRepository.findAllByHospital(hospital.getId());
+    }
+
+    //  wasteItem을 wasteType으로 찾는 서비스 유저 정보 x
     public List<WasteItem> findByWasteType(String wasteType) {
         return wasteRepository.findByWasteTypeContaining(wasteType);
     }
 
-    public List<WasteItem> findFilteredWasteItems(SearchRequest searchMessage) {
+    public List<WasteItem> findFilteredWasteItems(SearchRequest searchMessage, User user) {
 
         // `selectedDate`가 null 또는 빈 값이면 현재 시간 사용
         LocalDateTime selectedDate = (searchMessage.getCombineDate() == null || searchMessage.getCombineDate().isEmpty())
@@ -67,14 +72,14 @@ public class WasteService {
                 searchMessage.getRegistrantName(),
                 selectedDate,
                 endDate,
+                user.getHospital().getId(),
                 searchMessage.getSelectedDevice(),
                 searchMessage.getWasteStatus()
         );
     }
 
     // wasteItem 등록 서비스
-    public void registerWasteItem(WasteItemRequest wasteItemRequest) {
-        Optional<User> user = userRepository.findById(wasteItemRequest.getUserId());
+    public void registerWasteItem(WasteItemRequest wasteItemRequest, User user) {
         Optional<WasteStorage> wasteStorage = wasteStorageRepository.findById(wasteItemRequest.getStorageId());
 
         WasteItem wasteItem = new WasteItem();
@@ -84,7 +89,7 @@ public class WasteService {
 
         // 폐기물 이력 세팅
         WasteDetail wasteDetail = new WasteDetail();
-        user.ifPresent(wasteDetail::setUser);
+        wasteDetail.setUser(user);
 
         wasteDetail.setWasteItem(wasteItem);
         wasteDetail.setStatus(wasteItem.getStatus());
@@ -99,7 +104,7 @@ public class WasteService {
         wasteItem.getWasteDetails().add(wasteDetail);
 
         // 그 외의 것들 세팅
-        wasteItem.setRegistrantName(user.map(User::getName).orElse("Unknown User"));
+        wasteItem.setRegistrantName(user.getName());
         wasteItem.setWasteType(wasteItemRequest.getWasteType());
         wasteItem.setLocation(wasteItemRequest.getLocation());
         wasteItem.setSelectedDate(dateTime);
@@ -107,26 +112,9 @@ public class WasteService {
         wasteItem.setSelectedDevice(wasteItemRequest.getSelectedDevice());
         wasteRepository.save(wasteItem);
     }
-    // wasteItem 다 찾는 서비스
-    public List<WasteStorage> findAllWasteStorages() {
-        return wasteStorageRepository.findAll();
-    }
-
-    public void registerWasteStorage(WasteStorage wasteStorage) {
-        wasteStorageRepository.save(wasteStorage);
-    }
-
-    public Beacon findBeaconById(Long id) {
-        return beaconRepository.findById(id).orElse(null);
-    }
-
-    // 저장소 리스트형태로 다저장
-    public void registerWasteStorages(List<WasteStorage> wasteStorages) {
-        wasteStorageRepository.saveAll(wasteStorages); // 한 번에 저장
-    }
 
     @Transactional
-    public void moveWasteItemsToNextStep(MoveRequests moveRequests) {
+    public void moveWasteItemsToNextStep(MoveRequests moveRequests, User user) {
         List<MoveRequest> moveRequestList = moveRequests.getWasteMoveRequests();
         for (MoveRequest request : moveRequestList) {
             // 현재 WasteItem 가져오기
@@ -143,10 +131,9 @@ public class WasteService {
             wasteRepository.save(wasteItem);
 
             // WasteDetail 기록 추가 (새로운 상태 기록 저장)
-            Optional<User> user = userRepository.findById(request.getUserId());
             WasteDetail newDetail = new WasteDetail();
             newDetail.setWasteItem(wasteItem);
-            user.ifPresent(newDetail::setUser);
+            newDetail.setUser(user);
 
             // `selectedDate`를 `LocalDateTime`으로 변환 (입력값이 `null`이면 현재 시간 설정)
             LocalDateTime dateTime = (request.getDate() == null || request.getDate().isEmpty())
@@ -160,10 +147,12 @@ public class WasteService {
         }
     }
 
+    // 유저 정보 x
     public WasteItem findWasteItemById(Long id) {
         return wasteRepository.findById(id).orElse(null);
     }
 
+    // 유저 정보 x
     public Boolean checkItemStatus(Long id) {
         return wasteRepository.findById(id)
                 .map(wasteItem -> WasteStatus.COLLECTING.equals(wasteItem.getStatus())) // 안전한 null 비교

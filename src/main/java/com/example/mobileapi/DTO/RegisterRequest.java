@@ -20,7 +20,7 @@ public class RegisterRequest {
 
     private String profession;
 
-    private String selectedHospital;
+    private Long selectedHospitalId;
 
     private Long roleId;
 

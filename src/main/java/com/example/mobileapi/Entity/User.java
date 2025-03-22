@@ -33,9 +33,9 @@ public class User {
     @Column(nullable = true, unique = true) // 전화번호 중복 방지
     private String phoneNumber;
 
-
-    @Column(nullable = true) // 선택한 병원
-    private String selectedHospital;
+    @ManyToOne
+    @JoinColumn(name = "hospitals_id", nullable = false) // 외래키(FK) 컬럼 이름 지정
+    private Hospital hospital;
 
     @ManyToOne
     @JoinColumn(name = "roles_id", nullable = false) // 외래키(FK) 컬럼 이름 지정

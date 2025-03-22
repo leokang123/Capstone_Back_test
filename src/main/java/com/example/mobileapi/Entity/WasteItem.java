@@ -2,6 +2,7 @@ package com.example.mobileapi.Entity;
 
 import com.example.mobileapi.DTO.UpdateWasteItem;
 import com.example.mobileapi.Enum.WasteStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,7 +49,6 @@ public class WasteItem {
 
     @Column(nullable = false)
     private String registrantName;
-
 
     // 기본 생성자에서 상태를 COLLECTING으로 설정
     public WasteItem() {
