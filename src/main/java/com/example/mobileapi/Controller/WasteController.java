@@ -57,6 +57,7 @@ public class WasteController {
         return ResponseEntity.ok(wasteList);
     }
 
+
     @PostMapping("get_filtered_wastelist")
     public ResponseEntity<List<WasteItemResponse>> getFilteredWasteList(
             @AuthenticationPrincipal CustomUserDetails userDetails,

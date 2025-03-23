@@ -13,6 +13,8 @@ public class SearchRequest {
     @Nullable
     private String registrantName;
     @Nullable
+    private Long wasteStorageId;
+    @Nullable
     private String selectedDate;
     @Nullable
     private String selectedTime;

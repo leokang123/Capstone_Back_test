@@ -73,6 +73,7 @@ public class WasteService {
                 selectedDate,
                 endDate,
                 user.getHospital().getId(),
+                searchMessage.getWasteStorageId(),
                 searchMessage.getSelectedDevice(),
                 searchMessage.getWasteStatus()
         );

@@ -18,8 +18,6 @@ public class RegisterRequest {
 
     private String phoneNumber;
 
-    private String profession;
-
     private Long selectedHospitalId;
 
     private Long roleId;

@@ -30,6 +30,7 @@ public interface WasteRepository extends JpaRepository<WasteItem, Long> {
             "(:registrantName IS NULL OR :registrantName = '' OR w.registrantName LIKE CONCAT('%', :registrantName, '%')) AND " +  // ✅ 앞뒤 와일드카드 적용
             "(:selectedDevice IS NULL OR :selectedDevice = '' OR w.selectedDevice LIKE CONCAT('%', :selectedDevice, '%')) AND " +  // ✅ 앞뒤 와일드카드 적용
             "(:wasteStatus IS NULL OR :wasteStatus = '' OR w.status = :wasteStatus) AND " +
+            "(:wasteStorageId IS NULL OR w.wasteStorage.id = :wasteStorageId) AND " +
             "(:hospitalId IS NULL OR w.wasteStorage.hospital.id = :hospitalId) AND " +
             "(COALESCE(:selectedDate, w.selectedDate) = w.selectedDate " +
             " OR w.selectedDate BETWEEN :selectedDate AND :endDate) " +
@@ -40,6 +41,7 @@ public interface WasteRepository extends JpaRepository<WasteItem, Long> {
             @Param("selectedDate") LocalDateTime selectedDate,
             @Param("endDate") LocalDateTime endDate,
             @Param("hospitalId") Long hospitalId,
+            @Param("wasteStorageId") Long wasteStorageId,
             @Param("selectedDevice") String selectedDevice,
             @Param("wasteStatus") WasteStatus wasteStatus
     );
