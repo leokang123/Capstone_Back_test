@@ -106,6 +106,7 @@ public class WasteController {
         return ResponseEntity.ok(exists);
     }
 
+
     @PutMapping("update_item")
     public ResponseEntity<Boolean> updateWasteItem(@RequestBody UpdateWasteItem wasteItem) {
         wasteService.updateWasteItem(wasteItem);

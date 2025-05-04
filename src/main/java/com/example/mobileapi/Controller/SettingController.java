@@ -17,7 +17,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping(("setting"))
+@RequestMapping("setting")
 public class SettingController {
     private final SettingService settingService;
 
